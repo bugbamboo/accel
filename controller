@@ -1,0 +1,69 @@
+#include <Wire.h>
+#include <Adafruit_Sensor.h> 
+#include <Adafruit_ADXL345_U.h>
+#include "RF24.h"
+
+bool radioNumber = 0;
+RF24 radio(7,8); 
+byte addresses[][6] = {"1Node","2Node"};
+bool role = 0;
+Adafruit_ADXL345_Unified accel = Adafruit_ADXL345_Unified();
+
+void setup(void) 
+{
+   Serial.begin(9600);  
+   if(!accel.begin())
+   {
+      Serial.println("No ADXL345 sensor detected.");
+      while(1);
+   }
+   radio.begin();
+ 
+ 
+radio.setPALevel(RF24_PA_MAX);
+if(radioNumber){
+ 
+  radio.openWritingPipe(addresses[1]);
+ 
+  radio.openReadingPipe(1,addresses[0]);
+ 
+}else{
+ 
+  radio.openWritingPipe(addresses[0]);
+ 
+  radio.openReadingPipe(1,addresses[1]);
+ 
+}
+ 
+ // Start the radio listening for data
+ 
+radio.startListening();
+}
+void loop(void) 
+{
+  String d ="";
+   sensors_event_t event; 
+   accel.getEvent(&event);
+if(event.acceleration.x<-5){
+  d="left";
+}
+if(event.acceleration.x>5){
+  d="right";
+}
+if(event.acceleration.y<-5){
+  d="back";
+}
+if(event.acceleration.y>5){
+  d="front";
+}
+if(d!=""){
+   Serial.println(d);
+    radio.stopListening();                                    
+  unsigned long start_time = micros();                             
+ 
+   if (!radio.write( &d, sizeof(d) )){
+     Serial.println(F("failed"));
+   }
+}
+   delay(500);
+}
